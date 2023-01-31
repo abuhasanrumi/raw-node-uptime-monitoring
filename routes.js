@@ -4,7 +4,7 @@
 // Date: 31/01/2023
 
 // dependencies
-const { sampleHandler } = require('../handlers/routeHandler/sampleHandler');
+const { sampleHandler } = require('./handlers/routeHandler/sampleHandler');
 
 const routes = {
     sample: sampleHandler,
