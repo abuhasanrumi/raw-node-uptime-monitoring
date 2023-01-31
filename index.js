@@ -13,8 +13,8 @@ const data = require('./lib/data')
 const app = {};
 
 //testing file system
-data.create('test', 'newFile', { 'name': 'bangladesh', 'language': 'bengali' }, (err) => {
-    console.log(err)
+data.read('test', 'newFile', (err, data) => {
+    console.log(err, data)
 })
 
 // create server
