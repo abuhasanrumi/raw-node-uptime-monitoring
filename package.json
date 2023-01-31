@@ -1,4 +1,14 @@
 {
+  "name": "raw-node-uptime-monitoring-api-project",
+  "main": "index.js",
+  "version": "1.0.0",
+  "keywords": [],
+  "author": "Abu Hasan Rumi",
+  "license": "UNLICENSED",
+  "description": "",
+  "scripts": {
+    "start": "nodemon index"
+  },
   "devDependencies": {
     "eslint": "^8.2.0",
     "eslint-config-airbnb-base": "15.0.0",
@@ -6,5 +16,8 @@
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-prettier": "^4.2.1",
     "prettier": "^2.8.3"
+  },
+  "dependencies": {
+    "nodemon": "^2.0.20"
   }
 }
