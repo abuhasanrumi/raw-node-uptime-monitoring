@@ -69,7 +69,7 @@ handler._check.post = (requestProperties, callback) => {
                                         if (!err3) {
                                             // add checkID to the users object
                                             userObj.checks = userChecks
-                                            userObj.checks.push = checkID
+                                            userObj.checks.push(checkID)
 
                                             // save the new user data
                                             data.update('users', userPhone, userObj, (err4) => {
@@ -232,7 +232,80 @@ handler._check.put = (requestProperties, callback) => {
 }
 
 handler._check.delete = (requestProperties, callback) => {
+    // check if the token id is valid
+    const id = typeof (requestProperties.queryStringObject.id) === 'string' && requestProperties.queryStringObject.id.trim().length === 20 ? requestProperties.queryStringObject.id : false;
 
+    if (id) {
+        // lookup the check
+        data.read('checks', id, (err1, checkData) => {
+            if (!err1 && checkData) {
+                // lookup token
+                const token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false;
+
+                // verify token
+                tokenHandler._token.verify(token, parseJSON(checkData).userPhone, (tokenIsValid) => {
+                    if (tokenIsValid) {
+                        // delete the check data
+                        data.delete('checks', id, (err2) => {
+                            if (!err2) {
+                                data.read('users', parseJSON(checkData).userPhone, (err3, userData) => {
+                                    let userObj = parseJSON(userData)
+                                    if (!err3 && userData) {
+                                        let userChecks = typeof (userObj.checks) === 'object' && userObj.checks instanceof Array ? userObj.checks : []
+
+                                        // remove the deleted check id from users list of checks
+                                        const checkPosition = userChecks.indexOf(id);
+                                        if (checkPosition > -1) {
+                                            userChecks.splice(checkPosition, 1)
+
+                                            // resave the user data
+                                            userObj.checks = userChecks
+                                            data.update('users', userObj.phone, userObj, (err4) => {
+                                                if (!err4) {
+                                                    callback(200, {
+                                                        message: "check deleted successfully"
+                                                    })
+                                                } else {
+                                                    callback(500, {
+                                                        error: 'Server side error',
+                                                    });
+                                                }
+                                            })
+                                        } else {
+                                            callback(500, {
+                                                error: 'The check id is not found in user',
+                                            });
+                                        }
+                                    } else {
+                                        callback(500, {
+                                            error: 'Server side error',
+                                        });
+                                    }
+                                })
+                            } else {
+                                callback(500, {
+                                    error: 'Server side error',
+                                });
+                            }
+                        })
+                    } else {
+                        callback(403, {
+                            error: 'Authentication failure',
+                        });
+                    }
+                })
+            }
+            else {
+                callback(500, {
+                    error: 'Server side error',
+                });
+            }
+        });
+    } else {
+        callback(400, {
+            error: 'You have a problem in your request',
+        });
+    }
 }
 
 module.exports = handler;
