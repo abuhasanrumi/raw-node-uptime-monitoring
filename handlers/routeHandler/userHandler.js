@@ -137,6 +137,7 @@ handler._users.put = (requestProperties, callback) => {
         })
     }
 }
+
 handler._users.delete = (requestProperties, callback) => {
     // check if the phone no is valid
     const phone = typeof (requestProperties.queryStringObject.phone) === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
