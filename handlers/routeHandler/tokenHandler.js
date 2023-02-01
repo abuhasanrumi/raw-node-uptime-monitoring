@@ -122,7 +122,36 @@ handler._token.put = (requestProperties, callback) => {
 }
 
 handler._token.delete = (requestProperties, callback) => {
+    // check if the phone no is valid
+    const id = typeof (requestProperties.queryStringObject.id) === 'string' && requestProperties.queryStringObject.id.trim().length === 20 ? requestProperties.queryStringObject.id : false;
 
+    if (id) {
+        // lookup the user
+        data.read('tokens', id, (err, tokenData) => {
+            if (!err && tokenData) {
+                data.delete('tokens', id, (err) => {
+                    if (!err) {
+                        callback(200, {
+                            message: "Token deleted successfully"
+                        })
+                    } else {
+                        callback(500, {
+                            error: "There was a server side error"
+                        })
+                    }
+                })
+            } else {
+                callback(500, {
+                    error: "There was a server side error"
+                })
+            }
+        })
+
+    } else {
+        callback(400, {
+            error: "There was a problem in your request"
+        })
+    }
 }
 
 module.exports = handler;
