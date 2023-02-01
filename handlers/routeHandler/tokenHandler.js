@@ -8,7 +8,6 @@ const data = require("../../lib/data")
 const { hash } = require('../../helpers/utilities')
 const { createRandomStr } = require('../../helpers/utilities');
 const { parseJSON } = require('../../helpers/utilities');
-const { token } = require("../../routes");
 
 // module scaffolding
 const handler = {};
@@ -34,7 +33,7 @@ handler._token.post = (requestProperties, callback) => {
             let hashedPass = hash(password)
             if (hashedPass === parseJSON(userData).password) {
                 const tokenID = createRandomStr(20)
-                const expires = Date.now() + 60 + 60 + 1000;
+                const expires = Date.now() + 60 * 60 * 1000;
                 let tokenObject = {
                     phone: phone,
                     id: tokenID,
@@ -68,7 +67,7 @@ handler._token.get = (requestProperties, callback) => {
     // check if the token id is valid
     const id = typeof (requestProperties.queryStringObject.id) === 'string' && requestProperties.queryStringObject.id.trim().length === 20 ? requestProperties.queryStringObject.id : false;
 
-    if (token) {
+    if (id) {
         // lookup the token 
         data.read('tokens', id, (err, tokenData) => {
             const token = { ...parseJSON(tokenData) }
@@ -88,7 +87,38 @@ handler._token.get = (requestProperties, callback) => {
 }
 
 handler._token.put = (requestProperties, callback) => {
+    // check if the token id is valid
+    const id = typeof (requestProperties.body.id) === 'string' && requestProperties.body.id.trim().length === 20 ? requestProperties.body.id : false;
 
+    const extend = !!(typeof (requestProperties.body.extend) === 'boolean' && requestProperties.body.extend === true);
+
+    if (id && extend) {
+        data.read('tokens', id, (err1, tokenData) => {
+            const tokenObj = parseJSON(tokenData);
+            if (tokenObj.expires > Date.now()) {
+                tokenObj.expires = Date.now() + 60 * 60 * 1000
+
+                // store updated token
+                data.update('tokens', id, tokenObj, (err2) => {
+                    if (!err2) {
+                        callback(200)
+                    } else {
+                        callback(500, {
+                            error: "There was an server side error"
+                        })
+                    }
+                })
+            } else {
+                callback(400, {
+                    error: "Token already expired"
+                })
+            }
+        })
+    } else {
+        callback(400, {
+            error: "There was a problem in your request"
+        })
+    }
 }
 
 handler._token.delete = (requestProperties, callback) => {
