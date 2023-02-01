@@ -71,7 +71,7 @@ handler._users.get = (requestProperties, callback) => {
     if (phone) {
 
         // verifying token
-        let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false
+        const token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false
 
         tokenHandler._token.verify(token, phone, (tokenID) => {
             if (tokenID) {
