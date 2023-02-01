@@ -7,6 +7,7 @@
 const data = require("../../lib/data")
 const { hash } = require('../../helpers/utilities')
 const { parseJSON } = require('../../helpers/utilities');
+const tokenHandler = require('./tokenHandler');
 
 // module scaffolding
 const handler = {};
@@ -68,18 +69,31 @@ handler._users.get = (requestProperties, callback) => {
     const phone = typeof (requestProperties.queryStringObject.phone) === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
 
     if (phone) {
-        // lookup the user 
-        data.read('users', phone, (err, u) => {
-            const user = { ...parseJSON(u) }
-            if (!err && user) {
-                delete user.password
-                callback(200, user)
+
+        // verifying token
+        let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false
+
+        tokenHandler._token.verify(token, phone, (tokenID) => {
+            if (tokenID) {
+                // lookup the user 
+                data.read('users', phone, (err, u) => {
+                    const user = { ...parseJSON(u) }
+                    if (!err && user) {
+                        delete user.password
+                        callback(200, user)
+                    } else {
+                        callback(404, {
+                            error: "Requested user wasn't found"
+                        })
+                    }
+                })
             } else {
-                callback(404, {
-                    error: "Requested user wasn't found"
+                callback(403, {
+                    error: "Authentication Failed"
                 })
             }
         })
+
     } else {
         callback(404, {
             error: "Requested user wasn't found"
@@ -95,36 +109,48 @@ handler._users.put = (requestProperties, callback) => {
 
     if (phone) {
         if (firstName || lastName || password) {
-            // look up the user
-            data.read('users', phone, (err, uData) => {
-                const userData = { ...parseJSON(uData) }
-                if (!err && userData) {
-                    if (firstName) {
-                        userData.firstName = firstName;
-                    } if (lastName) {
-                        userData.lastName = lastName;
-                    } if (password) {
-                        userData.password = hash(password);
-                    }
+            // verifying token
+            let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false
 
-                    // store to database
-                    data.update('users', phone, userData, (err) => {
-                        if (!err) {
-                            callback(200, {
-                                message: "User was updated successfully!"
+            tokenHandler._token.verify(token, phone, (tokenID) => {
+                if (tokenID) {
+                    // look up the user
+                    data.read('users', phone, (err, uData) => {
+                        const userData = { ...parseJSON(uData) }
+                        if (!err && userData) {
+                            if (firstName) {
+                                userData.firstName = firstName;
+                            } if (lastName) {
+                                userData.lastName = lastName;
+                            } if (password) {
+                                userData.password = hash(password);
+                            }
+
+                            // store to database
+                            data.update('users', phone, userData, (err) => {
+                                if (!err) {
+                                    callback(200, {
+                                        message: "User was updated successfully!"
+                                    })
+                                } else {
+                                    callback(500, {
+                                        error: "There was a problem in server side"
+                                    })
+                                }
                             })
                         } else {
-                            callback(500, {
-                                error: "There was a problem in server side"
+                            callback(400, {
+                                error: "Your informations are not matching, please try again"
                             })
                         }
                     })
                 } else {
-                    callback(400, {
-                        error: "Your informations are not matching, please try again"
+                    callback(403, {
+                        error: "Authentication Failed"
                     })
                 }
             })
+
         } else {
             callback(400, {
                 error: "Your informations are not matching, please try again"
@@ -142,13 +168,25 @@ handler._users.delete = (requestProperties, callback) => {
     const phone = typeof (requestProperties.queryStringObject.phone) === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
 
     if (phone) {
-        // lookup the user
-        data.read('users', phone, (err, userData) => {
-            if (!err && userData) {
-                data.delete('users', phone, (err) => {
-                    if (!err) {
-                        callback(200, {
-                            message: "User deleted successfully"
+
+        // verifying token
+        let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false
+
+        tokenHandler._token.verify(token, phone, (tokenID) => {
+            if (tokenID) {
+                // lookup the user
+                data.read('users', phone, (err, userData) => {
+                    if (!err && userData) {
+                        data.delete('users', phone, (err) => {
+                            if (!err) {
+                                callback(200, {
+                                    message: "User deleted successfully"
+                                })
+                            } else {
+                                callback(500, {
+                                    error: "There was a server side error"
+                                })
+                            }
                         })
                     } else {
                         callback(500, {
@@ -157,12 +195,11 @@ handler._users.delete = (requestProperties, callback) => {
                     }
                 })
             } else {
-                callback(500, {
-                    error: "There was a server side error"
+                callback(403, {
+                    error: "Authentication Failed"
                 })
             }
         })
-
     } else {
         callback(400, {
             error: "There was a problem in your request"
